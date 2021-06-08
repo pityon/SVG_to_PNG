@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .field {
+            padding: 20px;
+            min-height: 100px; 
+            border: 1px solid black;
+        }
+        .items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            align-items: center;
+        }
+        #output svg {
+            width: 20px;
+            height: 20px;
+        }
+        #result img {
+            max-width: 50px;
+        }
+        strong {
+            display: block;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <strong>INPUT:</strong>
+    <div id="input" class="field">DROP FILES HERE</div>
+    <strong>OUTPUT:</strong>
+    <div id="output" class="field items">EMPTY</div>
+    <strong>RESULTS:</strong>
+    <div id="result" class="field items">EMPTY</div>
+
+    <script>
+        const input = document.getElementById('input');
+        const output = document.getElementById('output');
+        const result = document.getElementById('result');
+
+        input.addEventListener('dragenter', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            this.textContent = '';
+        });
+        input.addEventListener('dragover', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+        });
+        input.addEventListener('drop', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            handleDrop(e);
+        });
+
+        const handleDrop = function(event) {
+            var dt = event.dataTransfer;
+            var files = dt.files;
+            let promises = [];
+
+            callbackBefore();
+            for (const [key, file] of Object.entries(files)) {
+                promises.push(
+                    new Promise((resolve, reject) => { 
+                        readSVG(file).then((result) => {
+                            callbackEvery(result);
+                            resolve();
+                        })
+                    })
+                );
+            }
+            Promise.all(promises).then(callbackAfter);
+        }
+
+        const readSVG = function(file) {
+            return new Promise((resolve, reject) => {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    resolve(event.target.result);
+                }
+                reader.readAsText(file);
+            });
+        }
+
+        const convert = function(svg_node, width=100, height=100) {
+            return new Promise((resolve, reject) => {
+                var svgData = new XMLSerializer().serializeToString(svg_node);
+                var canvas = document.createElement("canvas");
+                var ctx = canvas.getContext( "2d" );
+                canvas.width = width;
+                canvas.height = height;
+
+                var img = document.createElement("img");
+                img.setAttribute("src", "data:image/svg+xml;base64," + btoa(svgData));
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    resolve(canvas.toDataURL("image/png"));
+                }
+            })
+        }
+
+        const callbackBefore = function() {
+            output.innerHTML = '';
+            result.innerHTML = '';
+        }
+
+        const callbackEvery = function(result) {
+            result = result.replace('<svg', '<svg fill="#ffb400"');
+            output.innerHTML += result;
+        }
+
+        const callbackAfter = function() {
+            setTimeout(() => {
+                var svg_list = document.querySelectorAll("svg");
+                svg_list.forEach((node) => {
+                    const width = node.width.baseVal.value;
+                    const height = node.height.baseVal.value;
+                    convert(node, width, height).then((converted) => {
+                        result.innerHTML += '<img src="' + converted + '">';
+                    })
+                });
+            }, 500);
+        }
+    </script>
+    
+</body>
+</html>
