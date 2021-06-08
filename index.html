@@ -40,6 +40,7 @@
     <div id="result" class="field items">EMPTY</div>
 
     <script>
+        const minimum_size = 200;
         const input = document.getElementById('input');
         const output = document.getElementById('output');
         const result = document.getElementById('result');
@@ -119,8 +120,11 @@
             setTimeout(() => {
                 var svg_list = document.querySelectorAll("svg");
                 svg_list.forEach((node) => {
-                    const width = node.width.baseVal.value;
-                    const height = node.height.baseVal.value;
+                    let width = node.width.baseVal.value;
+                    let height = node.height.baseVal.value;
+                    if (width < minimum_size && height < minimum_size) {
+                        width = height = minimum_size;
+                    }
                     convert(node, width, height).then((converted) => {
                         result.innerHTML += '<img src="' + converted + '">';
                     })
